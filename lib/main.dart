@@ -1,18 +1,24 @@
 // lib/main.dart
 
-import 'package:enigma_app_v1_0/models/evento.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:enigma_app_v1_0/firebase_options.dart';
 import 'package:enigma_app_v1_0/providers/auth_provider.dart';
-import 'package:enigma_app_v1_0/providers/eventos_provider.dart';
-import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'pages/login_page.dart';
-import 'pages/eventos_page.dart';
-import 'pages/recuperar_acesso_page.dart';
+
+import 'models/evento.dart';
 import 'pages/criar_usuario_page.dart';
+import 'pages/eventos_page.dart';
+import 'pages/fases_grid_page.dart';
+import 'pages/login_page.dart';
+import 'pages/rank_page.dart';
+import 'pages/recuperar_acesso_page.dart';
 import 'pages/settings_page.dart';
-import 'pages/fases_grid_page.dart'; // Importe a FasesGridPage
-import 'firebase_options.dart'; // Importação do arquivo gerado pelo FlutterFire CLI
+import 'pages/user_info_page.dart';
+import 'providers/eventos_provider.dart';
+import 'providers/settings_provider.dart';
+import 'providers/user_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,22 +45,44 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider<EventosProvider>(
           create: (_) => EventosProvider(),
         ),
+        // Provedor de Usuário
+        ChangeNotifierProvider<UserProvider>(
+          create: (_) => UserProvider(),
+        ),
+        // Provedor de Configurações
+        ChangeNotifierProvider<SettingsProvider>(
+          create: (_) => SettingsProvider(),
+        ),
         // Outros provedores podem ser adicionados aqui conforme necessário
       ],
       child: MaterialApp(
-        title: 'Seu App',
+        title: 'Enigma App',
         theme: ThemeData(
-          primarySwatch: Colors.blue,
+          primaryColor: Color(0xFF3e8da1), // Cor principal
+          scaffoldBackgroundColor:
+              Color(0xff0a5c69), // Cor de fundo do Scaffold
+          textTheme: TextTheme(
+            bodyMedium: TextStyle(
+                color: const Color(0xFFFFFFFF)), // Cor do texto principal
+          ),
         ),
-        initialRoute: '/login',
+        // Define a página inicial como EventosPageWrapper
+        home: EventosPage(),
+        // Rotas nomeadas
         routes: {
-          '/eventoWrapper': (context) => EventosPageWrapper(),
           '/login': (context) => LoginPage(),
           '/recuperarSenha': (context) => RecuperarAcessoPage(),
           '/criarUsuario': (context) => CriarUsuarioPage(),
-          '/settings': (context) => SettingsPageWrapper(),
+          '/settings': (context) => SettingsPage(),
+          '/userInfo': (context) => UserInfoPage(), // Adicionada a rota
+          '/rank': (context) {
+            final Evento evento =
+                ModalRoute.of(context)!.settings.arguments as Evento;
+            return RankPage(evento: evento);
+          },
           // Não defina "/fasesGrid" aqui, pois será gerada dinamicamente via onGenerateRoute
         },
+        // Gerenciamento de rotas dinâmicas
         onGenerateRoute: (RouteSettings settings) {
           if (settings.name == '/fasesGrid') {
             // Verifique se os argumentos são do tipo esperado
@@ -77,7 +105,7 @@ class MyApp extends StatelessWidget {
             }
           }
 
-          // Rotas adicionais ou página de erro para rotas não encontradas
+          // Rotas não definidas
           return MaterialPageRoute(
             builder: (context) => Scaffold(
               appBar: AppBar(title: Text('Rota não encontrada')),
@@ -85,6 +113,7 @@ class MyApp extends StatelessWidget {
             ),
           );
         },
+        // Rotas desconhecidas
         onUnknownRoute: (settings) {
           return MaterialPageRoute(
             builder: (context) => Scaffold(
@@ -95,52 +124,5 @@ class MyApp extends StatelessWidget {
         },
       ),
     );
-  }
-}
-
-// **Wrappers para páginas que dependem de provedores específicos**
-
-class EventosPageWrapper extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
-
-    // Verifica se o usuário está autenticado
-    if (authProvider.isLoading) {
-      return Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    if (authProvider.user == null) {
-      // Redireciona para a página de login se o usuário não estiver autenticado
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.pushReplacementNamed(context, '/login');
-      });
-      return Scaffold(); // Retorna um scaffold vazio enquanto redireciona
-    }
-
-    return ChangeNotifierProvider<EventosProvider>(
-      create: (_) => EventosProvider(),
-      child: EventosPage(),
-    );
-  }
-}
-
-class SettingsPageWrapper extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
-    final user = authProvider.user;
-
-    if (user == null) {
-      // Redireciona para a página de login se o usuário não estiver autenticado
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.pushReplacementNamed(context, '/login');
-      });
-      return Scaffold();
-    }
-
-    return SettingsPage();
   }
 }

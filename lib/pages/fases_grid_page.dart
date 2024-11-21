@@ -1,6 +1,7 @@
 // lib/pages/fases_grid_page.dart
 
 import 'package:enigma_app_v1_0/providers/fases_grid_provider.dart';
+import 'package:enigma_app_v1_0/providers/fases_grid_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -54,11 +55,12 @@ class ScaffoldBody extends StatelessWidget {
       backgroundColor: backgroundColor,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(10.0),
+          padding: const EdgeInsets.symmetric(horizontal: 10.0),
           child: Column(
             children: [
               // Cabeçalho com informações do usuário, configurações e informações do evento
               UserInfoHeader(
+                valorPremio: logic.evento.valorPremio,
                 nomeCompleto: logic.nomeCompleto ?? 'Usuário',
                 photoURL: logic.photoURL,
                 tipoDesafio: logic.evento.tipoDesafio,
@@ -109,149 +111,165 @@ class ScaffoldBody extends StatelessWidget {
 
               // Grid de Fases
               Expanded(
-                child: GridView.builder(
-                  itemCount: logic.evento.fases.length,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2, // Número de colunas
-                    crossAxisSpacing: 8.0,
-                    mainAxisSpacing: 8.0,
-                    childAspectRatio: 0.7, // Ajuste para ficar proporcional
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white38,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                    ),
                   ),
-                  itemBuilder: (context, index) {
-                    final fase = logic.evento.fases[index];
-                    final isDesbloqueada = logic.isFaseDesbloqueada(index);
-                    final isConcluida = logic.isFaseConcluida(index);
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+                    child: GridView.builder(
+                      itemCount: logic.evento.fases.length,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2, // Número de colunas
+                        crossAxisSpacing: 8.0,
+                        mainAxisSpacing: 8.0,
+                        childAspectRatio: 0.8, // Ajuste para ficar proporcional
+                      ),
+                      itemBuilder: (context, index) {
+                        final fase = logic.evento.fases[index];
+                        final isDesbloqueada = logic.isFaseDesbloqueada(index);
+                        final isConcluida = logic.isFaseConcluida(index);
 
-                    return GestureDetector(
-                      onTap: isDesbloqueada
-                          ? () async {
-                              if (isConcluida) {
-                                _mostrarDialogoFaseConcluida(
-                                    context, fase.numeroFase);
-                              } else {
-                                // Navegar para a FasePage
-                                await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => FasePageWrapper(
-                                      evento: logic.evento,
-                                      faseIndex: index,
+                        return GestureDetector(
+                          onTap: isDesbloqueada
+                              ? () async {
+                                  if (isConcluida) {
+                                    _mostrarDialogoFaseConcluida(
+                                        context, fase.numeroFase);
+                                  } else {
+                                    // Navegar para a FasePage
+                                    await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => FasePageWrapper(
+                                          evento: logic.evento,
+                                          faseIndex: index,
+                                        ),
+                                      ),
+                                    );
+
+                                    // Após retornar da FasePage, recarregar os dados
+                                    await logic.reloadData();
+                                  }
+                                }
+                              : null,
+                          child: Stack(
+                            children: [
+                              Card(
+                                elevation: 3.0,
+                                color: primaryColor,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10.0),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Expanded(
+                                      child: ClipRRect(
+                                        borderRadius:
+                                            const BorderRadius.vertical(
+                                                top: Radius.circular(10.0)),
+                                        child: fase.imgCapaFase.isNotEmpty
+                                            ? CachedNetworkImage(
+                                                imageUrl: fase.imgCapaFase,
+                                                fit: BoxFit.scaleDown,
+                                                placeholder: (context, url) =>
+                                                    Center(
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                    color: primaryColor,
+                                                  ),
+                                                ),
+                                                errorWidget:
+                                                    (context, url, error) =>
+                                                        Container(
+                                                  color: Colors.grey,
+                                                  child: const Icon(
+                                                    Icons.error,
+                                                    color: Colors.red,
+                                                    size: 50.0,
+                                                  ),
+                                                ),
+                                              )
+                                            : Container(
+                                                color: Colors.grey,
+                                                child: const Icon(
+                                                  Icons.image,
+                                                  color: Colors.white,
+                                                  size: 50.0,
+                                                ),
+                                              ),
+                                      ),
                                     ),
-                                  ),
-                                );
-
-                                // Após retornar da FasePage, recarregar os dados
-                                await logic.reloadData();
-                              }
-                            }
-                          : null,
-                      child: Stack(
-                        children: [
-                          Card(
-                            elevation: 3.0,
-                            color: primaryColor,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10.0),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Expanded(
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.vertical(
-                                        top: Radius.circular(10.0)),
-                                    child: fase.imgCapaFase.isNotEmpty
-                                        ? CachedNetworkImage(
-                                            imageUrl: fase.imgCapaFase,
-                                            fit: BoxFit.cover,
-                                            placeholder: (context, url) =>
-                                                Center(
-                                              child: CircularProgressIndicator(
-                                                color: primaryColor,
-                                              ),
-                                            ),
-                                            errorWidget:
-                                                (context, url, error) =>
-                                                    Container(
-                                              color: Colors.grey,
-                                              child: Icon(
-                                                Icons.error,
-                                                color: Colors.red,
-                                                size: 50.0,
-                                              ),
-                                            ),
-                                          )
-                                        : Container(
-                                            color: Colors.grey,
-                                            child: Icon(
-                                              Icons.image,
+                                    Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Column(
+                                        children: [
+                                          // Número da Fase
+                                          Text(
+                                            'Fase ${fase.numeroFase}',
+                                            style: const TextStyle(
                                               color: Colors.white,
-                                              size: 50.0,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 20,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                          const SizedBox(height: 5.0),
+                                          // Status da Fase
+                                          Text(
+                                            isConcluida
+                                                ? 'Concluída'
+                                                : isDesbloqueada
+                                                    ? 'Disponível'
+                                                    : 'Bloqueada',
+                                            style: TextStyle(
+                                              color: isConcluida
+                                                  ? Colors.greenAccent
+                                                  : isDesbloqueada
+                                                      ? Colors.yellowAccent
+                                                      : Colors.redAccent,
+                                              fontSize: 14.0,
                                             ),
                                           ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // Ícone de cadeado para fases bloqueadas
+                              if (!isDesbloqueada)
+                                const Center(
+                                  child: Icon(
+                                    Icons.lock,
+                                    color: Colors.white,
+                                    size: 50.0,
                                   ),
                                 ),
-                                Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Column(
-                                    children: [
-                                      // Número da Fase
-                                      Text(
-                                        'Fase ${fase.numeroFase}',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 20,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                      SizedBox(height: 5.0),
-                                      // Status da Fase
-                                      Text(
-                                        isConcluida
-                                            ? 'Concluída'
-                                            : isDesbloqueada
-                                                ? 'Disponível'
-                                                : 'Bloqueada',
-                                        style: TextStyle(
-                                          color: isConcluida
-                                              ? Colors.greenAccent
-                                              : isDesbloqueada
-                                                  ? Colors.yellowAccent
-                                                  : Colors.redAccent,
-                                          fontSize: 14.0,
-                                        ),
-                                      ),
-                                    ],
+                              // Ícone de check para fases concluídas
+                              if (isConcluida)
+                                const Positioned(
+                                  top: 8,
+                                  left: 8,
+                                  child: Icon(
+                                    Icons.check_circle,
+                                    color: Colors.greenAccent,
+                                    size: 24.0,
                                   ),
                                 ),
-                              ],
-                            ),
+                            ],
                           ),
-                          // Ícone de cadeado para fases bloqueadas
-                          if (!isDesbloqueada)
-                            Center(
-                              child: Icon(
-                                Icons.lock,
-                                color: Colors.white,
-                                size: 50.0,
-                              ),
-                            ),
-                          // Ícone de check para fases concluídas
-                          if (isConcluida)
-                            Positioned(
-                              top: 8,
-                              left: 8,
-                              child: Icon(
-                                Icons.check_circle,
-                                color: Colors.greenAccent,
-                                size: 24.0,
-                              ),
-                            ),
-                        ],
-                      ),
-                    );
-                  },
+                        );
+                      },
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -269,7 +287,7 @@ class ScaffoldBody extends StatelessWidget {
         return AlertDialog(
           alignment: Alignment.center,
           title: Text('Fase $numeroFase Concluída'),
-          content: Column(
+          content: const Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               // Ícone de conclusão
@@ -285,7 +303,7 @@ class ScaffoldBody extends StatelessWidget {
           ),
           actions: [
             TextButton(
-              child: Text('OK'),
+              child: const Text('OK'),
               onPressed: () {
                 Navigator.of(context).pop();
               },

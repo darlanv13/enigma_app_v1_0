@@ -14,6 +14,7 @@ class FasesGridProvider extends ChangeNotifier {
   UserProgress? userProgress;
   bool isLoading = true;
   String? nomeCompleto;
+  double? valorPremio;
   String? photoURL;
   String? errorMessage;
   Map<String, dynamic>? userData;
@@ -47,8 +48,10 @@ class FasesGridProvider extends ChangeNotifier {
       userProgress = await _userService.getUserProgress(user.uid);
       if (userProgress == null) {
         await _userService.createUserProgress(user.uid);
-        userProgress =
-            UserProgress(userId: user.uid, eventosFasesCompletadas: {});
+        userProgress = UserProgress(
+            userId: user.uid,
+            eventosFasesCompletadas: {},
+            eventosFasesProgresso: {});
       }
 
       isLoading = false;

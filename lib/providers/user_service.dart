@@ -2,7 +2,6 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:enigma_app_v1_0/models/user_progress.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class UserService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -33,8 +32,8 @@ class UserService {
 
   /// Cria um novo documento de progresso para o usuário
   Future<void> createUserProgress(String uid) async {
-    UserProgress userProgress =
-        UserProgress(userId: uid, eventosFasesCompletadas: {});
+    UserProgress userProgress = UserProgress(
+        userId: uid, eventosFasesCompletadas: {}, eventosFasesProgresso: {});
     await _firestore
         .collection('user_progress')
         .doc(uid)

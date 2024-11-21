@@ -36,6 +36,7 @@ class FaseProvider extends ChangeNotifier {
   bool verificandoResposta = false;
 
   // Animação
+  // ignore: unused_field
   late AnimationController _animationController;
   late Animation<double> fadeAnimation;
 
@@ -69,8 +70,10 @@ class FaseProvider extends ChangeNotifier {
       userProgress = await _userService.getUserProgress(user.uid);
       if (userProgress == null) {
         await _userService.createUserProgress(user.uid);
-        userProgress =
-            UserProgress(userId: user.uid, eventosFasesCompletadas: {});
+        userProgress = UserProgress(
+            userId: user.uid,
+            eventosFasesCompletadas: {},
+            eventosFasesProgresso: {});
       }
 
       isLoadingUserData = false;

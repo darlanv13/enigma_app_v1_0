@@ -4,115 +4,172 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'dart:io';
-
 import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 class SettingsProvider extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
-  User? user;
-  String? photoURL;
-  File? imageFile;
-  bool isLoading = false;
-  String? errorMessage;
+  User? _user;
+  TextEditingController nomeController = TextEditingController();
+  TextEditingController cpfController = TextEditingController();
+  TextEditingController emailController = TextEditingController();
+  TextEditingController telefoneController = TextEditingController();
+  String? _photoURL;
+  File? _imageFile;
+  bool _isLoading = true;
 
-  // Controla a seleção de imagem
-  final ImagePicker _picker = ImagePicker();
+  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
   SettingsProvider() {
-    _initializeUser();
+    _loadUserData();
   }
 
-  Future<void> _initializeUser() async {
-    user = _auth.currentUser;
-    if (user != null) {
-      await _loadUserData();
-    }
-  }
+  // Getters para acessar propriedades privadas
+  User? get user => _user;
+  String? get photoURL => _photoURL;
+  File? get imageFile => _imageFile;
+  bool get isLoading => _isLoading;
 
+  /// Carrega os dados do usuário a partir do FirebaseAuth e Firestore
   Future<void> _loadUserData() async {
-    try {
-      DocumentSnapshot userDoc =
-          await _firestore.collection('usuarios').doc(user!.uid).get();
-      if (userDoc.exists) {
-        Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
-        photoURL = userData['photoURL'] ?? user!.photoURL;
-      } else {
-        // Se não existir no Firestore, usar dados do FirebaseAuth
-        photoURL = user!.photoURL;
+    _isLoading = true;
+    notifyListeners();
+
+    _user = _auth.currentUser;
+    print('Usuário atual: ${_user?.uid}');
+
+    if (_user != null) {
+      try {
+        DocumentSnapshot userDoc =
+            await _firestore.collection('usuarios').doc(_user!.uid).get();
+        print('Documento encontrado: ${userDoc.exists}');
+
+        if (userDoc.exists) {
+          Map<String, dynamic> userData =
+              userDoc.data() as Map<String, dynamic>;
+          print('Dados do usuário: $userData');
+
+          nomeController.text = userData['nome_completo'] ?? '';
+          cpfController.text = userData['cpf'] ?? '';
+          telefoneController.text = userData['telefone'] ?? '';
+          _photoURL = userData['photoURL'] ?? _user!.photoURL;
+        } else {
+          print(
+              'Documento não existe no Firestore. Usando dados do FirebaseAuth.');
+          nomeController.text = _user!.displayName ?? '';
+          cpfController.text = '';
+          telefoneController.text = '';
+          _photoURL = _user!.photoURL;
+        }
+        emailController.text = _user!.email ?? '';
+        print('Nome Completo carregado: ${nomeController.text}');
+      } catch (e) {
+        print('Erro ao carregar dados do usuário: $e');
       }
-      notifyListeners();
-    } catch (e) {
-      errorMessage = 'Erro ao carregar dados do usuário.';
-      print(e);
-      notifyListeners();
+    } else {
+      print('Nenhum usuário está logado.');
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  /// Atualiza os dados do usuário no Firestore e Firebase Storage
+  Future<void> updateUserData(BuildContext context) async {
+    if (formKey.currentState!.validate()) {
+      if (_user != null) {
+        try {
+          _isLoading = true;
+          notifyListeners();
+
+          // Atualizar foto de perfil se uma nova imagem foi selecionada
+          if (_imageFile != null) {
+            String fileName = 'profile_images/${_user!.uid}.jpg';
+            Reference storageRef = _storage.ref().child(fileName);
+
+            UploadTask uploadTask = storageRef.putFile(_imageFile!);
+            TaskSnapshot snapshot = await uploadTask;
+            _photoURL = await snapshot.ref.getDownloadURL();
+            print('Foto de perfil atualizada: $_photoURL');
+          }
+
+          // Atualizar dados no Firestore
+          await _firestore.collection('usuarios').doc(_user!.uid).set({
+            'nome_completo': nomeController.text.trim(),
+            'telefone': telefoneController.text.trim(),
+            'photoURL': _photoURL ?? '',
+          }, SetOptions(merge: true));
+
+          // Atualizar o displayName no FirebaseAuth
+          await _user!.updateDisplayName(nomeController.text.trim());
+          _user = _auth.currentUser;
+          print('DisplayName atualizado para: ${_user!.displayName}');
+
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Dados atualizados com sucesso!'),
+            backgroundColor: Colors.green,
+          ));
+
+          // Limpar o arquivo de imagem selecionado
+          _imageFile = null;
+        } catch (e) {
+          print('Erro ao atualizar dados do usuário: $e');
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Erro ao atualizar os dados. Tente novamente.'),
+            backgroundColor: Colors.red,
+          ));
+        } finally {
+          _isLoading = false;
+          notifyListeners();
+        }
+      }
     }
   }
 
-  /// Método para escolher uma nova foto
+  /// Realiza o logout do usuário e redireciona para a página de login
+  Future<void> signOut(BuildContext context) async {
+    await _auth.signOut();
+    Navigator.pushReplacementNamed(context, '/login');
+  }
+
+  /// Permite ao usuário escolher uma nova foto de perfil
   Future<void> chooseNewPhoto() async {
+    final ImagePicker _picker = ImagePicker();
     final XFile? pickedFile =
         await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
 
     if (pickedFile != null) {
-      imageFile = File(pickedFile.path);
+      _imageFile = File(pickedFile.path);
+      _photoURL = null; // Limpar a URL para usar a nova imagem local
+      print('Nova foto selecionada: ${_imageFile!.path}');
       notifyListeners();
     }
   }
 
-  /// Método para atualizar os dados do usuário
-  Future<bool> updateUserData({
-    required String telefone,
-  }) async {
-    if (user == null) {
-      errorMessage = 'Usuário não autenticado.';
-      notifyListeners();
-      return false;
+  /// Obtém o nome completo do usuário
+  Future<String> getFullName() async {
+    if (_isLoading) {
+      await _loadUserData();
     }
 
-    try {
-      isLoading = true;
-      notifyListeners();
-
-      // Atualizar foto de perfil se uma nova imagem foi selecionada
-      if (imageFile != null) {
-        String fileName = 'profile_images/${user!.uid}.jpg';
-        Reference storageRef = _storage.ref().child(fileName);
-
-        UploadTask uploadTask = storageRef.putFile(imageFile!);
-        TaskSnapshot snapshot = await uploadTask;
-
-        photoURL = await snapshot.ref.getDownloadURL();
-      }
-
-      // Atualizar dados no Firestore
-      await _firestore.collection('usuarios').doc(user!.uid).set({
-        'telefone': telefone.trim(),
-        'photoURL': photoURL ?? '',
-      }, SetOptions(merge: true));
-
-      // Atualizar dados no FirebaseAuth, se necessário
-      await user!.updatePhotoURL(photoURL);
-
-      errorMessage = null; // Limpar mensagem de erro
-      return true;
-    } catch (e) {
-      errorMessage = 'Erro ao atualizar os dados. Tente novamente.';
-      print(e);
-      return false;
-    } finally {
-      isLoading = false;
-      notifyListeners();
+    if (nomeController.text.isNotEmpty) {
+      return nomeController.text;
+    } else if (_user != null) {
+      return _user!.displayName ?? 'Nome não disponível';
+    } else {
+      return 'Usuário não encontrado';
     }
   }
 
-  /// Método para realizar logout
-  Future<void> signOut() async {
-    await _auth.signOut();
-    // Não esqueça de notificar listeners se necessário
-    notifyListeners();
+  @override
+  void dispose() {
+    nomeController.dispose();
+    cpfController.dispose();
+    emailController.dispose();
+    telefoneController.dispose();
+    super.dispose();
   }
 }

@@ -1,5 +1,8 @@
+// lib/pages/recuperar_acesso_page.dart
+
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 
 class RecuperarAcessoPage extends StatefulWidget {
   final String? email;
@@ -15,8 +18,6 @@ class _RecuperarAcessoPageState extends State<RecuperarAcessoPage>
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _emailController;
 
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  bool _isLoading = false;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
@@ -52,53 +53,41 @@ class _RecuperarAcessoPageState extends State<RecuperarAcessoPage>
     super.dispose();
   }
 
-  Future<void> _recuperarSenha() async {
+  Future<void> _recuperarSenha(BuildContext context) async {
     if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
+      // Chama o método do AuthProvider para recuperar senha
+      await Provider.of<AuthProvider>(context, listen: false)
+          .recoverPassword(_emailController.text.trim());
 
-      try {
-        await _auth.sendPasswordResetEmail(
-          email: _emailController.text.trim(),
-        );
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
+      if (authProvider.errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('E-mail de recuperação enviado com sucesso!'),
+          content: Text(authProvider.errorMessage!),
+          backgroundColor: Colors.red,
+        ));
+        authProvider.clearError();
+      } else if (authProvider.recoveryMessage != null) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(authProvider.recoveryMessage!),
           backgroundColor: Colors.green,
         ));
+        authProvider.clearRecoveryMessage();
 
-        // Redireciona para a página de login
+        // Redireciona para a página de login após recuperação bem-sucedida
         Navigator.pushReplacementNamed(context, '/login');
-      } on FirebaseAuthException catch (e) {
-        String errorMessage = 'Erro ao enviar e-mail de recuperação.';
-
-        if (e.code == 'user-not-found') {
-          errorMessage = 'E-mail não encontrado.';
-        }
-
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: Colors.red,
-        ));
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Erro inesperado: $e'),
-          backgroundColor: Colors.red,
-        ));
-      } finally {
-        setState(() {
-          _isLoading = false;
-        });
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Acessa o estado de carregamento do AuthProvider
+    final authProvider = Provider.of<AuthProvider>(context);
+
     // Definindo as cores personalizadas
-    final Color primaryColor = Color(0xFF03E8DA);
-    final Color backgroundColor = Color(0xFF0A5C69);
+    Color primaryColor = Theme.of(context).primaryColor;
+    Color backgroundColor = Theme.of(context).scaffoldBackgroundColor;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -153,12 +142,12 @@ class _RecuperarAcessoPageState extends State<RecuperarAcessoPage>
                           : null,
                     ),
                     SizedBox(height: 24),
-                    _isLoading
+                    authProvider.isLoading
                         ? CircularProgressIndicator(color: primaryColor)
                         : SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: _recuperarSenha,
+                              onPressed: () => _recuperarSenha(context),
                               child: Text('Enviar E-mail de Recuperação'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: primaryColor,

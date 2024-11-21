@@ -1,130 +1,94 @@
 // lib/providers/auth_provider.dart
 
-import 'package:enigma_app_v1_0/providers/user_service.dart';
-import 'package:enigma_app_v1_0/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-class AuthProvider extends ChangeNotifier {
-  final AuthService _authService = AuthService();
-  final UserService _userService = UserService();
-
+class AuthProvider with ChangeNotifier {
+  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   User? user;
-  Map<String, dynamic>? userData;
   bool isLoading = true;
   String? errorMessage;
+  String? recoveryMessage;
 
   AuthProvider() {
-    _initializeUser();
-  }
-
-  Future<void> _initializeUser() async {
-    user = _authService.currentUser;
-    if (user != null) {
-      await _fetchUserData();
-    }
-    isLoading = false;
-    notifyListeners();
-
-    // Escutar mudanças de autenticação
-    _authService.authStateChanges.listen((User? newUser) async {
-      user = newUser;
-      if (user != null) {
-        await _fetchUserData();
-      } else {
-        userData = null;
-      }
+    // Escuta mudanças no estado de autenticação
+    _firebaseAuth.authStateChanges().listen((User? user) {
+      this.user = user;
       isLoading = false;
       notifyListeners();
     });
   }
 
-  Future<void> _fetchUserData() async {
-    try {
-      userData = await _userService.getUserData(user!.uid);
-      if (userData == null) {
-        // Criar dados de usuário padrão se não existir
-        await _userService.createUserDocument(user!.uid, {
-          'nome_completo': user!.displayName ?? 'Usuário',
-          'photoURL': user!.photoURL,
-          // Adicione outros campos padrão conforme necessário
-        });
-        userData = await _userService.getUserData(user!.uid);
-      }
-    } catch (e) {
-      errorMessage = 'Erro ao carregar dados do usuário.';
-      print(e);
-    }
-  }
-
-  /// Método para realizar login
+  // Método para efetuar login com email e senha
   Future<bool> login(String email, String password) async {
     try {
       isLoading = true;
+      errorMessage = null;
       notifyListeners();
-      User? loggedInUser = await _authService.login(email, password);
-      if (loggedInUser != null) {
-        user = loggedInUser;
-        await _fetchUserData();
-        return true;
-      } else {
-        errorMessage = 'Falha ao fazer login.';
-        return false;
-      }
+
+      await _firebaseAuth.signInWithEmailAndPassword(
+          email: email, password: password);
+      return true; // Login bem-sucedido
     } on FirebaseAuthException catch (e) {
-      errorMessage =
-          e.message; // A mensagem já está personalizada no AuthService
-      return false;
+      errorMessage = e.message;
+      return false; // Login falhou
     } catch (e) {
-      errorMessage = 'Erro ao fazer login.';
-      print(e);
-      return false;
+      errorMessage = 'Erro desconhecido durante o login.';
+      return false; // Login falhou
     } finally {
       isLoading = false;
       notifyListeners();
     }
   }
 
-  /// Método para realizar logout
+  // Método para efetuar logout
   Future<void> logout() async {
-    await _authService.logout();
-    user = null;
-    userData = null;
-    notifyListeners();
-  }
-
-  /// Método para registrar um novo usuário (opcional)
-  Future<bool> register(
-      String email, String password, String nomeCompleto) async {
     try {
       isLoading = true;
       notifyListeners();
-      User? registeredUser = await _authService.register(email, password);
-      if (registeredUser != null) {
-        user = registeredUser;
-        // Criar documento do usuário no Firestore
-        await _userService.createUserDocument(user!.uid, {
-          'nome_completo': nomeCompleto,
-          'photoURL': user!.photoURL,
-          // Adicione outros campos conforme necessário
-        });
-        userData = await _userService.getUserData(user!.uid);
-        return true;
-      } else {
-        errorMessage = 'Falha ao registrar.';
-        return false;
-      }
-    } on FirebaseAuthException catch (e) {
-      errorMessage =
-          e.message; // A mensagem já está personalizada no AuthService
-      return false;
+
+      await _firebaseAuth.signOut();
     } catch (e) {
-      errorMessage = 'Erro ao registrar.';
-      print(e);
-      return false;
+      errorMessage = 'Erro durante o logout.';
     } finally {
       isLoading = false;
       notifyListeners();
     }
+  }
+
+  // Método para limpar mensagens de erro
+  void clearError() {
+    errorMessage = null;
+    notifyListeners();
+  }
+
+  // Método para recuperar senha
+  Future<void> recoverPassword(String email) async {
+    try {
+      isLoading = true;
+      recoveryMessage = null;
+      errorMessage = null;
+      notifyListeners();
+
+      await _firebaseAuth.sendPasswordResetEmail(email: email);
+      recoveryMessage = 'E-mail de recuperação enviado com sucesso!';
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'user-not-found') {
+        errorMessage = 'Nenhum usuário encontrado para esse e-mail.';
+      } else {
+        errorMessage = 'Erro ao enviar e-mail de recuperação: ${e.message}';
+      }
+    } catch (e) {
+      errorMessage = 'Erro desconhecido durante a recuperação de senha.';
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Método para limpar mensagens de recuperação
+  void clearRecoveryMessage() {
+    recoveryMessage = null;
+    notifyListeners();
   }
 }

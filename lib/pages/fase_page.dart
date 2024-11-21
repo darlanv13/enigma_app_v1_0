@@ -1,10 +1,11 @@
 // lib/pages/fase_page.dart
 
-import 'package:enigma_app_v1_0/providers/fase_provider.dart';
+// ignore_for_file: unused_local_variable
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/evento.dart';
 import 'fase_concluida_page.dart';
+import '../providers/fase_provider.dart';
 import 'settings_page.dart';
 import '../widgets/user_info_header.dart';
 
@@ -50,8 +51,8 @@ class _ScaffoldBodyState extends State<ScaffoldBody>
   @override
   Widget build(BuildContext context) {
     final logic = Provider.of<FaseProvider>(context);
-    final Color primaryColor = Theme.of(context).primaryColor;
-    final Color backgroundColor = Theme.of(context).scaffoldBackgroundColor;
+    Color primaryColor = Theme.of(context).primaryColor;
+    Color backgroundColor = Theme.of(context).scaffoldBackgroundColor;
 
     final Pergunta perguntaAtual =
         logic.faseAtual.perguntas[logic.perguntaIndex];
@@ -71,6 +72,7 @@ class _ScaffoldBodyState extends State<ScaffoldBody>
                       children: [
                         // Cabeçalho com informações do usuário e configurações
                         UserInfoHeader(
+                          valorPremio: logic.evento.valorPremio,
                           nomeCompleto: logic.nomeCompleto ?? 'Usuário',
                           photoURL: logic.photoURL,
                           tipoDesafio: logic.evento.tipoDesafio,

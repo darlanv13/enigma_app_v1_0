@@ -6,7 +6,7 @@ class Evento {
   final String id;
   final String titulo;
   final String tipoDesafio;
-  final String valorPremio;
+  final double valorPremio;
   final int quantDesafios;
   final int quantFases;
   final String local;
@@ -38,7 +38,7 @@ class Evento {
       id: documentId,
       titulo: data['titulo'] ?? '',
       tipoDesafio: data['tipo_desafio'] ?? '',
-      valorPremio: data['valor_premio'] ?? '',
+      valorPremio: (data['valor_premio'] ?? 0.0).toDouble(),
       quantDesafios: data['quant_desafios'] ?? 0,
       quantFases: data['quant_fases'] ?? 0,
       local: data['local'] ?? '',

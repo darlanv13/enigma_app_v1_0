@@ -1,5 +1,6 @@
 // lib/providers/eventos_provider.dart
 
+import 'package:enigma_app_v1_0/models/evento.dart';
 import 'package:enigma_app_v1_0/providers/user_service.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -21,11 +22,27 @@ class EventosProvider extends ChangeNotifier {
   String? errorMessage;
   Map<String, dynamic>? userData;
 
+  // Lista de Eventos
+  List<Evento> _eventos = [];
+  bool isLoadingEventos = true;
+  String? eventosErrorMessage;
+
+  // Evento selecionado
+  Evento? _selectedEvento;
+
+  // Getters
+  List<Evento> get eventos => _eventos;
+  bool get loadingEventos => isLoadingEventos;
+  String? get eventosError => eventosErrorMessage;
+  Evento? get selectedEvento => _selectedEvento;
+
   EventosProvider() {
     _eventosCollection = _firestore.collection('Canaa_Dos_Carajas');
     _fetchUserData();
+    fetchEventos();
   }
 
+  // Método para buscar dados do usuário
   Future<void> _fetchUserData() async {
     try {
       final user = _auth.currentUser;
@@ -37,13 +54,14 @@ class EventosProvider extends ChangeNotifier {
       }
 
       // Obter dados do usuário do Firestore
-      Map<String, dynamic>? userData = await _userService.getUserData(user.uid);
-      if (userData != null) {
-        cpf = userData['cpf'] ?? 'CPF não disponível';
+      Map<String, dynamic>? fetchedUserData =
+          await _userService.getUserData(user.uid);
+      if (fetchedUserData != null) {
+        cpf = fetchedUserData['cpf'] ?? 'CPF não disponível';
         nomeCompleto =
-            userData['nome_completo'] ?? user.displayName ?? 'Usuário';
-        photoURL = userData['photoURL'] ?? user.photoURL;
-        progresso = userData['peventos_fases_completadas'] ?? 0;
+            fetchedUserData['nome_completo'] ?? user.displayName ?? 'Usuário';
+        photoURL = fetchedUserData['photoURL'] ?? user.photoURL;
+        progresso = fetchedUserData['peventos_fases_completadas'] ?? 0;
       } else {
         // Usuário não tem documento no Firestore
         nomeCompleto = user.displayName ?? 'Usuário';
@@ -61,7 +79,37 @@ class EventosProvider extends ChangeNotifier {
     }
   }
 
-  /// Método para obter o stream de eventos
+  // Método para buscar eventos
+  Future<void> fetchEventos() async {
+    try {
+      isLoadingEventos = true;
+      eventosErrorMessage = null;
+      notifyListeners();
+
+      QuerySnapshot snapshot = await _eventosCollection!.get();
+      _eventos = snapshot.docs
+          .map((doc) => Evento.fromMap(
+                doc.data() as Map<String, dynamic>,
+                doc.id,
+              ))
+          .toList();
+      isLoadingEventos = false;
+      notifyListeners();
+    } catch (e) {
+      print('Erro ao buscar eventos: $e');
+      eventosErrorMessage = 'Erro ao carregar eventos.';
+      isLoadingEventos = false;
+      notifyListeners();
+    }
+  }
+
+  // Método para selecionar um evento
+  void selectEvento(Evento evento) {
+    _selectedEvento = evento;
+    notifyListeners();
+  }
+
+  /// Método opcional para obter o stream de eventos
   Stream<QuerySnapshot> get eventosStream {
     return _eventosCollection!.snapshots();
   }

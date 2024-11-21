@@ -2,10 +2,12 @@
 
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:intl/intl.dart';
 
 class UserInfoHeader extends StatelessWidget {
   final String nomeCompleto;
   final String? photoURL;
+  final double? valorPremio;
   final double? valorInscricao;
   final String tipoDesafio;
   final int quantDesafios;
@@ -18,6 +20,7 @@ class UserInfoHeader extends StatelessWidget {
     required this.nomeCompleto,
     this.photoURL,
     this.valorInscricao,
+    this.valorPremio,
     required this.tipoDesafio,
     required this.quantDesafios,
     required this.local,
@@ -28,6 +31,8 @@ class UserInfoHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color primaryColor = Theme.of(context).primaryColor;
+    final formatCurrency =
+        NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$', decimalDigits: 0);
 
     return Padding(
       padding: const EdgeInsets.all(0.0),
@@ -37,12 +42,12 @@ class UserInfoHeader extends StatelessWidget {
         borderRadius: BorderRadius.circular(20.0),
         child: Container(
           width: double.infinity,
-          padding: EdgeInsets.symmetric(vertical: 10.0, horizontal: 10.0),
+          padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 10.0),
           decoration: BoxDecoration(
             color: primaryColor,
             borderRadius: BorderRadius.circular(20.0),
             border: Border.all(
-              color: Color(0xFF3E8DA1),
+              color: primaryColor,
               width: 2.0,
             ),
           ),
@@ -55,7 +60,7 @@ class UserInfoHeader extends StatelessWidget {
                 children: [
                   // Ícone de voltar
                   IconButton(
-                    icon: Icon(
+                    icon: const Icon(
                       Icons.arrow_back,
                       color: Colors.white,
                       size: 29.0,
@@ -65,16 +70,16 @@ class UserInfoHeader extends StatelessWidget {
 
                   // Avatar do usuário
                   CircleAvatar(
-                    radius: 40.0,
+                    radius: 30.0,
                     backgroundImage: photoURL != null
                         ? NetworkImage(photoURL!)
-                        : AssetImage('assets/images/default_user.gif')
+                        : const AssetImage('assets/images/default_user.gif')
                             as ImageProvider,
                   ),
 
                   // Ícone de configurações
                   IconButton(
-                    icon: Icon(
+                    icon: const Icon(
                       Icons.settings_suggest,
                       color: Colors.white,
                       size: 29.0,
@@ -90,16 +95,16 @@ class UserInfoHeader extends StatelessWidget {
                 children: [
                   Text(
                     nomeCompleto,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16.0,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  SizedBox(width: 2.0),
+                  const SizedBox(width: 2.0),
                 ],
               ),
-              SizedBox(height: 2.0),
+              const SizedBox(height: 2.0),
 
               // Informações do Evento: Tipo de Desafio, Quantidade de Desafios, Local
               Column(
@@ -107,59 +112,105 @@ class UserInfoHeader extends StatelessWidget {
                 children: [
                   // Tipo de Desafio
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      FaIcon(
+                      /*const FaIcon(
                         FontAwesomeIcons.map,
-                        color: Colors.white70,
+                        color: Colors.brown,
                         size: 18.0,
-                      ),
-                      SizedBox(width: 5.0),
+                      ),*/
+                      const SizedBox(width: 5.0),
                       Text(
                         tipoDesafio,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.white70,
-                              fontSize: 14.0,
-                            ),
+                            color: Colors.white70,
+                            fontSize: 16.0,
+                            fontWeight: FontWeight.w500),
                       ),
                     ],
                   ),
-                  SizedBox(height: 4.0),
-                  // Quantidade de Desafios
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.castle_outlined,
-                        color: Colors.white70,
-                        size: 18.0,
-                      ),
-                      SizedBox(width: 5.0),
-                      Text(
-                        'Desafios: $quantDesafios',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.white70,
-                              fontSize: 14.0,
-                            ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 4.0),
+                  // Quantidade de Desafios e Local
+
+                  const SizedBox(height: 8.0),
                   // Local
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
                     children: [
-                      Icon(
-                        Icons.location_pin,
-                        color: Colors.white70,
-                        size: 19.0,
+                      const Icon(
+                        Icons.monetization_on,
+                        color: Colors.greenAccent,
+                        size: 18.0,
                       ),
-                      SizedBox(width: 5.0),
+                      const SizedBox(width: 5.0),
                       Text(
-                        local,
+                        'Prêmio:',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.white70,
-                              fontSize: 14.0,
-                            ),
+                            color: Colors.white70,
+                            fontSize: 18.0,
+                            fontWeight: FontWeight.w500),
+                      ),
+                      Text(
+                        '${formatCurrency.format(valorPremio)}',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.greenAccent,
+                            fontSize: 18.0,
+                            fontWeight: FontWeight.w500),
                       ),
                     ],
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 2.0),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.location_pin,
+                                color: Colors.blueAccent,
+                                size: 22.0,
+                              ),
+                              const SizedBox(width: 4.0),
+                              Text(
+                                local,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
+                                      color: Colors.white70,
+                                      fontSize: 12.0,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.radar,
+                                color: Colors.blueAccent,
+                                size: 22.0,
+                              ),
+                              const SizedBox(width: 4.0),
+                              Text(
+                                ' $quantDesafios Nivel',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
+                                      color: Colors.white70,
+                                      fontSize: 12.0,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),

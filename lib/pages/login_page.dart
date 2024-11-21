@@ -84,8 +84,8 @@ class _LoginPageState extends State<LoginPage>
   @override
   Widget build(BuildContext context) {
     // Definindo as cores personalizadas
-    final Color primaryColor = Color(0xFF03E8DA);
-    final Color backgroundColor = Color(0xFF0A5C69);
+    Color primaryColor = Theme.of(context).primaryColor;
+    Color backgroundColor = Theme.of(context).scaffoldBackgroundColor;
 
     return Scaffold(
       backgroundColor: backgroundColor,

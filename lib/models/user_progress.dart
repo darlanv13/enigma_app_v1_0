@@ -5,6 +5,7 @@ class UserProgress {
   UserProgress({
     required this.userId,
     required this.eventosFasesCompletadas,
+    required Map eventosFasesProgresso,
   });
 
   factory UserProgress.fromMap(Map<String, dynamic> data) {
@@ -20,6 +21,7 @@ class UserProgress {
     return UserProgress(
       userId: data['user_id'] ?? '',
       eventosFasesCompletadas: eventosFasesCompletadas,
+      eventosFasesProgresso: {},
     );
   }
 
